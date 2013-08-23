@@ -15,6 +15,9 @@ import pygame
 from pygame.locals import *
 import sys
 
+fixed_map_map = {	
+	'.': 'grass',
+}
 
 def load_map(file_name):
     with open(file_name, 'r') as f:
@@ -61,29 +64,54 @@ class Creature(pygame.sprite.Sprite):
     #    self.pos = pos
     #pos = property(_get_pos, _set_pos)
 
-class Game(object):
-	"""The main game object"""
-	def __init__(self):
-		self.screen = pygame.display.get_surface()
-		self.game_over = False
-		self.sprites = SortedUpdates()		
-	def main(self):
-		fps_clock = pygame.time.Clock()
-		self.screen.blit(self.background,(0,0))
-		pygame.display.flip()
-		while not self.game_over:
-			self.sprites.update()
-			dirty = self.sprites.draw(self.screen)
-			pygame.display.update(dirty)
-			fps_clock.tick(60)
-			for event in pygame.event.get():
-				if event.type == pg.QUIT:
-					self.game_over = True
+class Level(object):
+	def __init__(self, map_name):
+		self.load(map_name)
+	def load(self, map_name):
+		self.tiledata = MAP_CACHE[map_name]
+		self.width = 0
+		self.height = len(self.tiledata)
+		for y in range(self.height):
+			self.width = max(len(self.tiledata[y]), self.width)
+	def render(self):
+		image = pygame.Surface((self.width*MAP_TILE_WIDTH, self.height*MAP_TILE_HEIGHT))
+		for y, line in enumerate(self.tiledata):
+			for x,c in enumerate([ord(c) for c in line]):
+				if c == ' ':
+				elif fixed_map_map.has_key(c):
+				image.blit(IMAGE_CACHE[fixed_map_map[c]],(x*MAP_TILE_WIDTH, y*MAP_TILE_HEIGHT))					
+				else:
+					raise Exception
+		return image
 	
+class Game(object):
+    """The main game object"""
+    def __init__(self):
+        self.screen = pygame.display.get_surface()
+        self.game_over = False
+        self.sprites = SortedUpdates() 
+		self.use_level(Level('plains'))
+	def use_level(self, level):
+		self.sprites = SortedUpdates() 
+		self.level = level
+		self.background = self.level.render()
+    def main(self):
+        fps_clock = pygame.time.Clock()
+        self.screen.blit(self.background,(0,0))
+        pygame.display.flip()
+        while not self.game_over:
+            self.sprites.update()
+            dirty = self.sprites.draw(self.screen)
+            pygame.display.update(dirty)
+            fps_clock.tick(60)
+            for event in pygame.event.get():
+                if event.type == pg.QUIT:
+                    self.game_over = True
+    
 if __name__ == '__main__':
     pygame.init()
     screen = pygame.display.set_mode((1024,768))
     pygame.display.set_caption('Fantasy Tactics Combat Simulator')
-    MAPDATA_CACHE = load_map('data/mapdata.cfg')
-    IMAGE_CACHE = ImageCache('data/imagedata.cfg')	
-	Game().main()
+    MAP_CACHE = load_map('data/mapdata.cfg')
+    IMAGE_CACHE = ImageCache('data/imagedata.cfg')  
+    Game().main()
